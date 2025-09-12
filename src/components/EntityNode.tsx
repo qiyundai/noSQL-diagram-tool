@@ -115,8 +115,8 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
       >
         {/* Fixed height container to prevent resizing */}
         <div className="h-20 flex flex-col justify-between">
-          <div className="flex items-center justify-between h-6">
-                  <div className="flex items-center gap-2 flex-1 pr-28">
+          <div className="flex items-center justify-between h-6 gap-2">
+            <div className="flex items-center gap-2">
               {isEditing ? (
                 <>
                   <input
@@ -129,7 +129,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1 h-6"
+                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1 h-6 w-full"
                     placeholder="Entity name"
                   />
                 </>
@@ -139,7 +139,41 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: data.color }}
                   />
-                  <h3 className="font-semibold text-gray-900">{data.name}</h3>
+                  <h3 className="font-semibold text-gray-900 w-full">{data.name}</h3>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-1 flex-1">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 h-6"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 h-6"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 hover:bg-gray-100 rounded h-6 w-6 flex items-center justify-center"
+                  >
+                    <Edit2 className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={() => data.onDelete(data.id)}
+                    className="p-1 hover:bg-red-100 rounded text-red-600 h-6 w-6 flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </>
               )}
             </div>
@@ -160,41 +194,6 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
               )
             )}
           </div>
-        </div>
-        
-        {/* Fixed width button container to prevent width changes */}
-        <div className="absolute top-4 right-4 w-24 flex items-center justify-end gap-1">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleSaveEdit}
-                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 h-6"
-              >
-                Save
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 h-6"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="p-1 hover:bg-gray-100 rounded h-6 w-6 flex items-center justify-center"
-              >
-                <Edit2 className="w-4 h-4 text-gray-600" />
-              </button>
-              <button
-                onClick={() => data.onDelete(data.id)}
-                className="p-1 hover:bg-red-100 rounded text-red-600 h-6 w-6 flex items-center justify-center"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
         </div>
       </div>
 

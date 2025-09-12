@@ -116,7 +116,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
         {/* Fixed height container to prevent resizing */}
         <div className="h-20 flex flex-col justify-between">
           <div className="flex items-center justify-between h-6">
-            <div className="flex items-center gap-2 flex-1 pr-24">
+                  <div className="flex items-center gap-2 flex-1 pr-28">
               {isEditing ? (
                 <>
                   <input
@@ -162,8 +162,8 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
           </div>
         </div>
         
-        {/* Absolute positioned buttons */}
-        <div className="absolute top-4 right-4 flex items-center gap-1">
+        {/* Fixed width button container to prevent width changes */}
+        <div className="absolute top-4 right-4 w-24 flex items-center justify-end gap-1">
           {isEditing ? (
             <>
               <button
@@ -219,7 +219,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
               {/* Fixed height container */}
               <div className="h-12 flex flex-col justify-between">
                 <div className="flex items-center justify-between h-6">
-                  <div className="flex items-center gap-2 flex-1 pr-16">
+                  <div className="flex items-center gap-2 flex-1 pr-24">
                     {isEditingProp ? (
                       <>
                         <input
@@ -300,8 +300,8 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                 </div>
               </div>
               
-              {/* Absolute positioned buttons */}
-              <div className="absolute top-2 right-2 flex items-center gap-1">
+              {/* Fixed width button container to prevent width changes */}
+              <div className="absolute top-2 right-2 w-20 flex items-center justify-end gap-1">
                 {isEditingProp ? (
                   <button
                     onClick={() => setEditingProperty(null)}

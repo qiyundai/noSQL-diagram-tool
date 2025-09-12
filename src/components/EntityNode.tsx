@@ -105,7 +105,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
 
   return (
     <div className={cn(
-      "bg-white rounded-lg shadow-lg border-2 min-w-[300px] max-w-[400px]",
+      "bg-white rounded-lg shadow-lg border-2 w-[350px]",
       selected ? "border-blue-500" : "border-gray-200"
     )}>
       {/* Node Header */}

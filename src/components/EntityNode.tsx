@@ -113,39 +113,71 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
         className="p-4 border-b border-gray-200 rounded-t-lg"
         style={{ backgroundColor: (isEditing ? editForm.color : data.color) + '20' }}
       >
-        {isEditing ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={editForm.color}
-                  onChange={(e) => setEditForm({...editForm, color: e.target.value})}
-                  className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
-                  placeholder="Entity name"
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1">
+              {isEditing ? (
+                <>
+                  <input
+                    type="color"
+                    value={editForm.color}
+                    onChange={(e) => setEditForm({...editForm, color: e.target.value})}
+                    className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1"
+                    placeholder="Entity name"
+                  />
+                </>
+              ) : (
+                <>
+                  <div 
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: data.color }}
+                  />
+                  <h3 className="font-semibold text-gray-900">{data.name}</h3>
+                </>
+              )}
             </div>
+            <div className="flex items-center gap-1 w-20 justify-end">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <Edit2 className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={() => data.onDelete(data.id)}
+                    className="p-1 hover:bg-red-100 rounded text-red-600"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {isEditing ? (
             <textarea
               value={editForm.description}
               onChange={(e) => setEditForm({...editForm, description: e.target.value})}
@@ -153,37 +185,12 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
               placeholder="Entity description (optional)"
               rows={2}
             />
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: data.color }}
-                />
-                <h3 className="font-semibold text-gray-900">{data.name}</h3>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="p-1 hover:bg-gray-100 rounded"
-                >
-                  <Edit2 className="w-4 h-4 text-gray-600" />
-                </button>
-                <button
-                  onClick={() => data.onDelete(data.id)}
-                  className="p-1 hover:bg-red-100 rounded text-red-600"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            {data.description && (
+          ) : (
+            data.description && (
               <p className="text-sm text-gray-600 mt-1">{data.description}</p>
-            )}
-          </>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       {/* Properties */}
@@ -204,53 +211,110 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
             const isEditingProp = editingProperty === propName;
             return (
             <div key={propName} className="border border-gray-200 rounded p-2">
-              {isEditingProp ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={propName}
-                      onChange={(e) => {
-                        const newName = e.target.value;
-                        const { [propName]: oldProp, ...rest } = data.properties;
-                        const updatedEntity = {
-                          ...data,
-                          properties: {
-                            ...rest,
-                            [newName]: oldProp
-                          }
-                        };
-                        data.onUpdate(updatedEntity);
-                      }}
-                      className="font-medium text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
-                    />
-                    <select
-                      value={prop.type}
-                      onChange={(e) => updateProperty(propName, { type: e.target.value })}
-                      className="text-xs px-2 py-1 rounded border border-gray-300 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="string">string</option>
-                      <option value="number">number</option>
-                      <option value="boolean">boolean</option>
-                      <option value="array">array</option>
-                      <option value="object">object</option>
-                      <option value="reference">reference</option>
-                    </select>
-                    <label className="flex items-center gap-1 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={data.required?.includes(propName) || false}
-                        onChange={(e) => {
-                          const updatedRequired = e.target.checked
-                            ? [...(data.required || []), propName]
-                            : (data.required || []).filter(name => name !== propName);
-                          const updatedEntity = { ...data, required: updatedRequired };
-                          data.onUpdate(updatedEntity);
-                        }}
-                      />
-                      Required
-                    </label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1">
+                    {isEditingProp ? (
+                      <>
+                        <input
+                          type="text"
+                          value={propName}
+                          onChange={(e) => {
+                            const newName = e.target.value;
+                            const { [propName]: oldProp, ...rest } = data.properties;
+                            const updatedEntity = {
+                              ...data,
+                              properties: {
+                                ...rest,
+                                [newName]: oldProp
+                              }
+                            };
+                            data.onUpdate(updatedEntity);
+                          }}
+                          className="font-medium text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1"
+                        />
+                        <select
+                          value={prop.type}
+                          onChange={(e) => updateProperty(propName, { type: e.target.value })}
+                          className="text-xs px-2 py-1 rounded border border-gray-300 focus:border-blue-500 focus:outline-none"
+                        >
+                          <option value="string">string</option>
+                          <option value="number">number</option>
+                          <option value="boolean">boolean</option>
+                          <option value="array">array</option>
+                          <option value="object">object</option>
+                          <option value="reference">reference</option>
+                        </select>
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={data.required?.includes(propName) || false}
+                            onChange={(e) => {
+                              const updatedRequired = e.target.checked
+                                ? [...(data.required || []), propName]
+                                : (data.required || []).filter(name => name !== propName);
+                              const updatedEntity = { ...data, required: updatedRequired };
+                              data.onUpdate(updatedEntity);
+                            }}
+                          />
+                          Required
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <span className={cn(
+                          "text-xs px-2 py-1 rounded",
+                          getTypeColor(prop.type)
+                        )}>
+                          {prop.type}
+                        </span>
+                        <span className="font-medium text-sm">{propName}</span>
+                        {data.required?.includes(propName) && (
+                          <span className="text-red-500 text-xs">*</span>
+                        )}
+                      </>
+                    )}
                   </div>
+                  <div className="flex items-center gap-1 w-16 justify-end">
+                    {isEditingProp ? (
+                      <button
+                        onClick={() => setEditingProperty(null)}
+                        className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                      >
+                        Done
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setEditingProperty(propName)}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          <Edit2 className="w-3 h-3 text-gray-600" />
+                        </button>
+                        {(prop.type === 'object' || prop.type === 'array') && (
+                          <button
+                            onClick={() => togglePropertyExpansion(propName)}
+                            className="p-1 hover:bg-gray-100 rounded"
+                          >
+                            {expandedProperties.includes(propName) ? (
+                              <Minus className="w-3 h-3" />
+                            ) : (
+                              <Plus className="w-3 h-3" />
+                            )}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteProperty(propName)}
+                          className="p-1 hover:bg-red-100 rounded text-red-600"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {isEditingProp && (
                   <textarea
                     value={prop.description || ''}
                     onChange={(e) => updateProperty(propName, { description: e.target.value })}
@@ -258,59 +322,8 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     placeholder="Property description (optional)"
                     rows={2}
                   />
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setEditingProperty(null)}
-                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded",
-                        getTypeColor(prop.type)
-                      )}>
-                        {prop.type}
-                      </span>
-                      <span className="font-medium text-sm">{propName}</span>
-                      {data.required?.includes(propName) && (
-                        <span className="text-red-500 text-xs">*</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setEditingProperty(propName)}
-                        className="p-1 hover:bg-gray-100 rounded"
-                      >
-                        <Edit2 className="w-3 h-3 text-gray-600" />
-                      </button>
-                      {(prop.type === 'object' || prop.type === 'array') && (
-                        <button
-                          onClick={() => togglePropertyExpansion(propName)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          {expandedProperties.includes(propName) ? (
-                            <Minus className="w-3 h-3" />
-                          ) : (
-                            <Plus className="w-3 h-3" />
-                          )}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => deleteProperty(propName)}
-                        className="p-1 hover:bg-red-100 rounded text-red-600"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+                )}
+              </div>
               
               {!isEditingProp && prop.description && (
                 <p className="text-xs text-gray-600 mt-1">{prop.description}</p>

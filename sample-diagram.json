@@ -1,0 +1,201 @@
+{
+  "entities": [
+    {
+      "id": "user-entity",
+      "name": "User",
+      "type": "object",
+      "description": "User account information",
+      "properties": {
+        "id": {
+          "name": "id",
+          "type": "string",
+          "description": "Unique user identifier",
+          "required": true
+        },
+        "email": {
+          "name": "email",
+          "type": "string",
+          "description": "User email address",
+          "required": true
+        },
+        "profile": {
+          "name": "profile",
+          "type": "reference",
+          "description": "User profile information",
+          "ref": "UserProfile",
+          "required": false
+        },
+        "orders": {
+          "name": "orders",
+          "type": "array",
+          "description": "List of user orders",
+          "items": {
+            "name": "item",
+            "type": "reference",
+            "ref": "Order"
+          },
+          "required": false
+        }
+      },
+      "required": ["id", "email"],
+      "position": { "x": 100, "y": 100 },
+      "color": "#3b82f6"
+    },
+    {
+      "id": "profile-entity",
+      "name": "UserProfile",
+      "type": "object",
+      "description": "Extended user profile data",
+      "properties": {
+        "firstName": {
+          "name": "firstName",
+          "type": "string",
+          "description": "User's first name",
+          "required": true
+        },
+        "lastName": {
+          "name": "lastName",
+          "type": "string",
+          "description": "User's last name",
+          "required": true
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "string",
+          "description": "URL to user avatar image",
+          "required": false
+        },
+        "preferences": {
+          "name": "preferences",
+          "type": "object",
+          "description": "User preferences",
+          "properties": {
+            "theme": {
+              "name": "theme",
+              "type": "string",
+              "description": "UI theme preference"
+            },
+            "notifications": {
+              "name": "notifications",
+              "type": "boolean",
+              "description": "Email notifications enabled"
+            }
+          },
+          "required": false
+        }
+      },
+      "required": ["firstName", "lastName"],
+      "position": { "x": 500, "y": 100 },
+      "color": "#10b981"
+    },
+    {
+      "id": "order-entity",
+      "name": "Order",
+      "type": "object",
+      "description": "Customer order information",
+      "properties": {
+        "id": {
+          "name": "id",
+          "type": "string",
+          "description": "Unique order identifier",
+          "required": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "string",
+          "description": "ID of the user who placed the order",
+          "required": true
+        },
+        "items": {
+          "name": "items",
+          "type": "array",
+          "description": "Order items",
+          "items": {
+            "name": "item",
+            "type": "reference",
+            "ref": "OrderItem"
+          },
+          "required": true
+        },
+        "total": {
+          "name": "total",
+          "type": "number",
+          "description": "Total order amount",
+          "required": true
+        },
+        "status": {
+          "name": "status",
+          "type": "string",
+          "description": "Order status",
+          "required": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "string",
+          "description": "Order creation timestamp",
+          "required": true
+        }
+      },
+      "required": ["id", "userId", "items", "total", "status", "createdAt"],
+      "position": { "x": 100, "y": 400 },
+      "color": "#f59e0b"
+    },
+    {
+      "id": "order-item-entity",
+      "name": "OrderItem",
+      "type": "object",
+      "description": "Individual item in an order",
+      "properties": {
+        "productId": {
+          "name": "productId",
+          "type": "string",
+          "description": "ID of the product",
+          "required": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "number",
+          "description": "Quantity ordered",
+          "required": true
+        },
+        "price": {
+          "name": "price",
+          "type": "number",
+          "description": "Price per unit",
+          "required": true
+        }
+      },
+      "required": ["productId", "quantity", "price"],
+      "position": { "x": 500, "y": 400 },
+      "color": "#ef4444"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "user-profile-rel",
+      "source": "user-entity",
+      "target": "profile-entity",
+      "type": "reference",
+      "label": "has profile"
+    },
+    {
+      "id": "user-orders-rel",
+      "source": "user-entity",
+      "target": "order-entity",
+      "type": "reference",
+      "label": "places orders"
+    },
+    {
+      "id": "order-items-rel",
+      "source": "order-entity",
+      "target": "order-item-entity",
+      "type": "reference",
+      "label": "contains items"
+    }
+  ],
+  "metadata": {
+    "title": "E-commerce Database Schema",
+    "description": "A sample NoSQL schema for an e-commerce application showing user management and order processing",
+    "version": "1.0.0"
+  }
+}

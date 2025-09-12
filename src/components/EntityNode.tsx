@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Entity, Property } from '../types';
+import { Entity, Property, DiagramData } from '../types';
 import { cn } from '../utils/cn';
 import { Edit2, Trash2, Plus, Minus } from 'lucide-react';
+import { ReferenceManager } from '../utils/referenceManager';
 
 interface EntityNodeData extends Entity {
   onUpdate: (entity: Entity) => void;
   onDelete: (entityId: string) => void;
+  onUpdateDiagram: (data: DiagramData) => void;
+  diagramData: DiagramData;
 }
 
 const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => {
@@ -56,13 +59,29 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
   };
 
   const handleSaveEdit = () => {
+    const oldName = data.name;
+    const newName = editForm.name;
+    
     const updatedEntity = {
       ...data,
-      name: editForm.name,
+      name: newName,
       description: editForm.description,
       color: editForm.color
     };
-    data.onUpdate(updatedEntity);
+    
+    // If name changed, update all references to this entity
+    if (oldName !== newName) {
+      const updatedData = ReferenceManager.updateReferencesOnEntityRename(
+        data.id,
+        oldName,
+        newName,
+        data.diagramData
+      );
+      data.onUpdateDiagram(updatedData);
+    } else {
+      data.onUpdate(updatedEntity);
+    }
+    
     setIsEditing(false);
   };
 
@@ -76,17 +95,34 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
   };
 
   const updateProperty = (propertyName: string, updates: Partial<Property>) => {
-    const updatedEntity = {
-      ...data,
-      properties: {
-        ...data.properties,
-        [propertyName]: {
-          ...data.properties[propertyName],
-          ...updates
+    const currentProperty = data.properties[propertyName];
+    const newType = updates.type || currentProperty.type;
+    const wasReference = currentProperty.type === 'reference';
+    const isNowReference = newType === 'reference';
+
+    // Handle reference type changes
+    if (wasReference && !isNowReference) {
+      // Removing reference - clean up relationships
+      const updatedData = ReferenceManager.removeReference(propertyName, data, data.diagramData);
+      data.onUpdateDiagram(updatedData);
+    } else if (!wasReference && isNowReference) {
+      // Adding reference - create new entity and relationship
+      const updatedData = ReferenceManager.createEntityForReference(propertyName, data, data.diagramData);
+      data.onUpdateDiagram(updatedData);
+    } else {
+      // Regular property update
+      const updatedEntity = {
+        ...data,
+        properties: {
+          ...data.properties,
+          [propertyName]: {
+            ...data.properties[propertyName],
+            ...updates
+          }
         }
-      }
-    };
-    data.onUpdate(updatedEntity);
+      };
+      data.onUpdate(updatedEntity);
+    }
     setEditingProperty(null);
   };
 
@@ -97,7 +133,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
       boolean: 'bg-purple-100 text-purple-800',
       array: 'bg-orange-100 text-orange-800',
       object: 'bg-gray-100 text-gray-800',
-      reference: 'bg-red-100 text-red-800',
+      reference: 'bg-red-100 text-red-800 border border-red-300',
       any: 'bg-gray-100 text-gray-800'
     };
     return colors[type as keyof typeof colors] || colors.any;
@@ -309,6 +345,11 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       {prop.type}
                     </span>
                     <span className="font-medium text-sm text-gray-900">{propName}</span>
+                    {prop.type === 'reference' && prop.referenceEntityId && (
+                      <span className="text-xs text-red-600 bg-red-50 px-1 py-0.5 rounded">
+                        →
+                      </span>
+                    )}
                     {data.required?.includes(propName) && (
                       <span className="text-red-500 text-sm font-medium">*</span>
                     )}

@@ -16,6 +16,7 @@ import 'reactflow/dist/style.css';
 import { Entity, Relationship, DiagramData } from '../types';
 import EntityNode from './EntityNode';
 import { CustomEdge } from './CustomEdge';
+import { ReferenceManager } from '../utils/referenceManager';
 
 const nodeTypes: NodeTypes = {
   entity: EntityNode,
@@ -50,16 +51,12 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
           onUpdate({ ...data, entities: updatedEntities });
         },
         onDelete: (entityId: string) => {
-          const updatedEntities = data.entities.filter(e => e.id !== entityId);
-          const updatedRelationships = data.relationships.filter(r => 
-            r.source !== entityId && r.target !== entityId
-          );
-          onUpdate({ 
-            ...data, 
-            entities: updatedEntities, 
-            relationships: updatedRelationships 
-          });
-        }
+          // Use ReferenceManager to clean up all references
+          const updatedData = ReferenceManager.cleanupReferencesOnEntityDelete(entityId, data);
+          onUpdate(updatedData);
+        },
+        onUpdateDiagram: onUpdate,
+        diagramData: data
       }
     })), [data.entities, data.relationships]
   );
@@ -88,6 +85,23 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
   }, [relationshipEdges, setEdges]);
 
   const onConnect = useCallback((params: Connection) => {
+    const sourceEntity = data.entities.find(e => e.id === params.source);
+    const targetEntity = data.entities.find(e => e.id === params.target);
+
+    if (!sourceEntity || !targetEntity) {
+      return;
+    }
+
+    // Check if relationship already exists
+    const existingRelationship = data.relationships.find(rel => 
+      rel.source === params.source && rel.target === params.target
+    );
+
+    if (existingRelationship) {
+      return;
+    }
+
+    // Create the relationship
     const newRelationship: Relationship = {
       id: `rel-${Date.now()}`,
       source: params.source!,
@@ -96,8 +110,14 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
       label: ''
     };
 
-    const updatedRelationships = [...data.relationships, newRelationship];
-    onUpdate({ ...data, relationships: updatedRelationships });
+    // Use ReferenceManager to create reference property in target entity
+    const updatedData = ReferenceManager.createReferenceOnConnection(
+      sourceEntity,
+      targetEntity,
+      { ...data, relationships: [...data.relationships, newRelationship] }
+    );
+
+    onUpdate(updatedData);
   }, [data, onUpdate]);
 
   const onNodeDragStop = useCallback((_event: any, node: Node) => {

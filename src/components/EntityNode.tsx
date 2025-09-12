@@ -110,12 +110,13 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
     )}>
       {/* Node Header */}
       <div 
-        className="p-4 border-b border-gray-200 rounded-t-lg"
+        className="p-4 border-b border-gray-200 rounded-t-lg relative"
         style={{ backgroundColor: (isEditing ? editForm.color : data.color) + '20' }}
       >
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-1">
+        {/* Fixed height container to prevent resizing */}
+        <div className="h-20 flex flex-col justify-between">
+          <div className="flex items-center justify-between h-6">
+            <div className="flex items-center gap-2 flex-1 pr-24">
               {isEditing ? (
                 <>
                   <input
@@ -128,7 +129,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1"
+                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1 h-6"
                     placeholder="Entity name"
                   />
                 </>
@@ -142,53 +143,57 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                 </>
               )}
             </div>
-            <div className="flex items-center gap-1 w-20 justify-end">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="p-1 hover:bg-gray-100 rounded"
-                  >
-                    <Edit2 className="w-4 h-4 text-gray-600" />
-                  </button>
-                  <button
-                    onClick={() => data.onDelete(data.id)}
-                    className="p-1 hover:bg-red-100 rounded text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-            </div>
           </div>
           
+          <div className="h-10 flex items-start">
+            {isEditing ? (
+              <textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                className="w-full text-sm text-gray-600 bg-transparent border border-gray-300 rounded p-1 focus:border-blue-500 focus:outline-none resize-none h-8"
+                placeholder="Entity description (optional)"
+                rows={1}
+              />
+            ) : (
+              data.description && (
+                <p className="text-sm text-gray-600">{data.description}</p>
+              )
+            )}
+          </div>
+        </div>
+        
+        {/* Absolute positioned buttons */}
+        <div className="absolute top-4 right-4 flex items-center gap-1">
           {isEditing ? (
-            <textarea
-              value={editForm.description}
-              onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-              className="w-full text-sm text-gray-600 bg-transparent border border-gray-300 rounded p-2 focus:border-blue-500 focus:outline-none resize-none"
-              placeholder="Entity description (optional)"
-              rows={2}
-            />
+            <>
+              <button
+                onClick={handleSaveEdit}
+                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 h-6"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 h-6"
+              >
+                Cancel
+              </button>
+            </>
           ) : (
-            data.description && (
-              <p className="text-sm text-gray-600 mt-1">{data.description}</p>
-            )
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1 hover:bg-gray-100 rounded h-6 w-6 flex items-center justify-center"
+              >
+                <Edit2 className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                onClick={() => data.onDelete(data.id)}
+                className="p-1 hover:bg-red-100 rounded text-red-600 h-6 w-6 flex items-center justify-center"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -210,10 +215,11 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
             const prop = property as Property;
             const isEditingProp = editingProperty === propName;
             return (
-            <div key={propName} className="border border-gray-200 rounded p-2">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1">
+            <div key={propName} className="border border-gray-200 rounded p-2 relative">
+              {/* Fixed height container */}
+              <div className="h-12 flex flex-col justify-between">
+                <div className="flex items-center justify-between h-6">
+                  <div className="flex items-center gap-2 flex-1 pr-16">
                     {isEditingProp ? (
                       <>
                         <input
@@ -231,12 +237,12 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                             };
                             data.onUpdate(updatedEntity);
                           }}
-                          className="font-medium text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1"
+                          className="font-medium text-sm bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1 h-5"
                         />
                         <select
                           value={prop.type}
                           onChange={(e) => updateProperty(propName, { type: e.target.value })}
-                          className="text-xs px-2 py-1 rounded border border-gray-300 focus:border-blue-500 focus:outline-none"
+                          className="text-xs px-1 py-0.5 rounded border border-gray-300 focus:border-blue-500 focus:outline-none h-5"
                         >
                           <option value="string">string</option>
                           <option value="number">number</option>
@@ -245,7 +251,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                           <option value="object">object</option>
                           <option value="reference">reference</option>
                         </select>
-                        <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap h-5">
                           <input
                             type="checkbox"
                             checked={data.required?.includes(propName) || false}
@@ -275,59 +281,63 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 w-16 justify-end">
-                    {isEditingProp ? (
-                      <button
-                        onClick={() => setEditingProperty(null)}
-                        className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                      >
-                        Done
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setEditingProperty(propName)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          <Edit2 className="w-3 h-3 text-gray-600" />
-                        </button>
-                        {(prop.type === 'object' || prop.type === 'array') && (
-                          <button
-                            onClick={() => togglePropertyExpansion(propName)}
-                            className="p-1 hover:bg-gray-100 rounded"
-                          >
-                            {expandedProperties.includes(propName) ? (
-                              <Minus className="w-3 h-3" />
-                            ) : (
-                              <Plus className="w-3 h-3" />
-                            )}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteProperty(propName)}
-                          className="p-1 hover:bg-red-100 rounded text-red-600"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </>
-                    )}
-                  </div>
                 </div>
                 
-                {isEditingProp && (
-                  <textarea
-                    value={prop.description || ''}
-                    onChange={(e) => updateProperty(propName, { description: e.target.value })}
-                    className="w-full text-xs text-gray-600 bg-transparent border border-gray-300 rounded p-1 focus:border-blue-500 focus:outline-none resize-none"
-                    placeholder="Property description (optional)"
-                    rows={2}
-                  />
-                )}
+                <div className="h-4 flex items-start">
+                  {isEditingProp ? (
+                    <input
+                      type="text"
+                      value={prop.description || ''}
+                      onChange={(e) => updateProperty(propName, { description: e.target.value })}
+                      className="w-full text-xs text-gray-600 bg-transparent border border-gray-300 rounded p-1 focus:border-blue-500 focus:outline-none h-4"
+                      placeholder="Property description (optional)"
+                    />
+                  ) : (
+                    prop.description && (
+                      <p className="text-xs text-gray-600">{prop.description}</p>
+                    )
+                  )}
+                </div>
               </div>
               
-              {!isEditingProp && prop.description && (
-                <p className="text-xs text-gray-600 mt-1">{prop.description}</p>
-              )}
+              {/* Absolute positioned buttons */}
+              <div className="absolute top-2 right-2 flex items-center gap-1">
+                {isEditingProp ? (
+                  <button
+                    onClick={() => setEditingProperty(null)}
+                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 h-5"
+                  >
+                    Done
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setEditingProperty(propName)}
+                      className="p-1 hover:bg-gray-100 rounded h-5 w-5 flex items-center justify-center"
+                    >
+                      <Edit2 className="w-3 h-3 text-gray-600" />
+                    </button>
+                    {(prop.type === 'object' || prop.type === 'array') && (
+                      <button
+                        onClick={() => togglePropertyExpansion(propName)}
+                        className="p-1 hover:bg-gray-100 rounded h-5 w-5 flex items-center justify-center"
+                      >
+                        {expandedProperties.includes(propName) ? (
+                          <Minus className="w-3 h-3" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteProperty(propName)}
+                      className="p-1 hover:bg-red-100 rounded text-red-600 h-5 w-5 flex items-center justify-center"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
+              </div>
 
               {expandedProperties.includes(propName) && (
                 <div className="mt-2 pl-4 border-l-2 border-gray-200">

@@ -219,12 +219,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
         edgeTypes={edgeTypes}
         fitView
         attributionPosition="bottom-left"
-        defaultEdgeOptions={{
-          markerEnd: {
-            type: 'arrowclosed',
-            color: '#6b7280',
-          },
-        }}
       >
         <Controls />
         {showMiniMap && (

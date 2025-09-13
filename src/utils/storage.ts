@@ -1,5 +1,5 @@
 import { DiagramData } from '../types';
-import { SchemaExporter, ExportOptions } from './schemaExporter';
+import { SchemaExporter } from './schemaExporter';
 
 const STORAGE_KEY = 'nosql-diagram-data';
 

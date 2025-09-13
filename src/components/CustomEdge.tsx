@@ -12,35 +12,33 @@ const CustomEdge: React.FC<EdgeProps> = ({
   data,
   selected,
 }) => {
-  // Calculate smart control points to reduce crossings
-  const getSmartControlPoints = () => {
-    const dx = targetX - sourceX;
-    const dy = targetY - sourceY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    // Adjust control point offset based on distance and direction
-    const offset = Math.min(distance * 0.3, 150);
-    
-    // For horizontal layouts, prefer vertical curves
-    if (Math.abs(dx) > Math.abs(dy)) {
-      return {
-        sourceControlX: sourceX + (dx > 0 ? offset : -offset),
-        sourceControlY: sourceY,
-        targetControlX: targetX + (dx > 0 ? -offset : offset),
-        targetControlY: targetY,
-      };
-    } else {
-      // For vertical layouts, prefer horizontal curves
-      return {
-        sourceControlX: sourceX,
-        sourceControlY: sourceY + (dy > 0 ? offset : -offset),
-        targetControlX: targetX,
-        targetControlY: targetY + (dy > 0 ? -offset : offset),
-      };
-    }
-  };
-
-  const controlPoints = getSmartControlPoints();
+  // Smart control points calculation (currently unused but may be needed for future enhancements)
+  // const getSmartControlPoints = () => {
+  //   const dx = targetX - sourceX;
+  //   const dy = targetY - sourceY;
+  //   const distance = Math.sqrt(dx * dx + dy * dy);
+  //   
+  //   // Adjust control point offset based on distance and direction
+  //   const offset = Math.min(distance * 0.3, 150);
+  //   
+  //   // For horizontal layouts, prefer vertical curves
+  //   if (Math.abs(dx) > Math.abs(dy)) {
+  //     return {
+  //       sourceControlX: sourceX + (dx > 0 ? offset : -offset),
+  //       sourceControlY: sourceY,
+  //       targetControlX: targetX + (dx > 0 ? -offset : offset),
+  //       targetControlY: targetY,
+  //     };
+  //   } else {
+  //     // For vertical layouts, prefer horizontal curves
+  //     return {
+  //       sourceControlX: sourceX,
+  //       sourceControlY: sourceY + (dy > 0 ? offset : -offset),
+  //       targetControlX: targetX,
+  //       targetControlY: targetY + (dy > 0 ? -offset : offset),
+  //     };
+  //   }
+  // };
   
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,

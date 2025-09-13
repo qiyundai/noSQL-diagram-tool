@@ -126,7 +126,7 @@ export class SchemaParser {
     if (!entity) return;
 
     // Check properties for references
-    Object.entries(entity.properties).forEach(([propName, property]) => {
+    Object.entries(entity.properties).forEach(([_propName, property]) => {
       if (property.ref) {
         const targetEntity = this.entityMap.get(property.ref);
         if (targetEntity) {

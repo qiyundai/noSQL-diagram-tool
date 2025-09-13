@@ -1,4 +1,4 @@
-import { DiagramData, Entity, Property, Relationship } from '../types';
+import { DiagramData, Entity, Property } from '../types';
 
 export interface ExportOptions {
   format: 'openapi' | 'nosql' | 'json-schema';
@@ -10,7 +10,7 @@ export class SchemaExporter {
   /**
    * Exports diagram data to OpenAPI schema format
    */
-  static exportToOpenAPI(data: DiagramData, options: ExportOptions = { format: 'openapi' }): any {
+  static exportToOpenAPI(data: DiagramData, _options: ExportOptions = { format: 'openapi' }): any {
     const schemas: Record<string, any> = {};
     
     // Convert entities to OpenAPI schema components
@@ -36,7 +36,7 @@ export class SchemaExporter {
   /**
    * Exports diagram data to NoSQL document schema format
    */
-  static exportToNoSQL(data: DiagramData, options: ExportOptions = { format: 'nosql' }): any {
+  static exportToNoSQL(data: DiagramData, _options: ExportOptions = { format: 'nosql' }): any {
     const collections: Record<string, any> = {};
     
     // Convert entities to NoSQL collection schemas
@@ -57,7 +57,7 @@ export class SchemaExporter {
   /**
    * Exports diagram data to JSON Schema format
    */
-  static exportToJSONSchema(data: DiagramData, options: ExportOptions = { format: 'json-schema' }): any {
+  static exportToJSONSchema(data: DiagramData, _options: ExportOptions = { format: 'json-schema' }): any {
     const schemas: Record<string, any> = {};
     
     // Convert entities to JSON Schema

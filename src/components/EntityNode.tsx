@@ -216,36 +216,36 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
       >
         {/* Fixed height container to prevent resizing */}
         <div className="h-20 flex flex-col justify-between">
-          <div className="flex items-center justify-between h-6 gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center h-6 gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               {isEditing ? (
                 <>
                   <input
                     type="color"
                     value={editForm.color}
                     onChange={(e) => setEditForm({...editForm, color: e.target.value})}
-                    className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                    className="w-6 h-6 rounded border border-gray-300 cursor-pointer flex-shrink-0"
                   />
                   <input
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none flex-1 h-6 w-full px-1"
+                    className="font-semibold text-gray-900 bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none h-6 flex-1 min-w-0 px-1"
                     placeholder="Entity name"
                   />
                 </>
               ) : (
                 <>
                   <div 
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: data.color }}
                   />
-                  <h3 className="font-semibold text-gray-900 w-full">{data.name}</h3>
+                  <h3 className="font-semibold text-gray-900 truncate flex-1 min-w-0" title={data.name}>{data.name}</h3>
                 </>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 flex-1">
+            <div className="flex items-center justify-end gap-2 flex-shrink-0">
               {isEditing ? (
                 <>
                   <button

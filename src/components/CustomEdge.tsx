@@ -82,7 +82,6 @@ const CustomEdge: React.FC<EdgeProps> = ({
         id={id} 
         path={edgePath} 
         style={edgeStyle}
-        markerEnd="url(#arrowhead)"
       />
       <EdgeLabelRenderer>
         <div

@@ -126,12 +126,22 @@ export class SchemaParser {
     if (!entity) return;
 
     // Check properties for references
-    Object.values(entity.properties).forEach(property => {
+    Object.entries(entity.properties).forEach(([propName, property]) => {
       if (property.ref) {
-        this.createRelationship(entity.id, property.ref, 'reference', property.name);
+        const targetEntity = this.entityMap.get(property.ref);
+        if (targetEntity) {
+          // Set the referenceEntityId for the property
+          property.referenceEntityId = targetEntity.id;
+          this.createRelationship(entity.id, property.ref, 'reference', property.name);
+        }
       }
       if (property.items?.ref) {
-        this.createRelationship(entity.id, property.items.ref, 'reference', `${property.name}[]`);
+        const targetEntity = this.entityMap.get(property.items.ref);
+        if (targetEntity) {
+          // Set the referenceEntityId for the array items
+          property.items.referenceEntityId = targetEntity.id;
+          this.createRelationship(entity.id, property.items.ref, 'reference', `${property.name}[]`);
+        }
       }
     });
   }

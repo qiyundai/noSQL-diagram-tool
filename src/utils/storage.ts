@@ -1,4 +1,5 @@
 import { DiagramData } from '../types';
+import { SchemaExporter, ExportOptions } from './schemaExporter';
 
 const STORAGE_KEY = 'nosql-diagram-data';
 
@@ -29,12 +30,38 @@ export const storage = {
     }
   },
 
-  export: (data: DiagramData): void => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  export: (data: DiagramData, format: 'internal' | 'openapi' | 'nosql' | 'json-schema' = 'internal'): void => {
+    let exportData: any;
+    let filename: string;
+    let mimeType: string;
+
+    switch (format) {
+      case 'openapi':
+        exportData = SchemaExporter.exportToOpenAPI(data);
+        filename = 'schema-openapi.json';
+        mimeType = 'application/json';
+        break;
+      case 'nosql':
+        exportData = SchemaExporter.exportToNoSQL(data);
+        filename = 'schema-nosql.json';
+        mimeType = 'application/json';
+        break;
+      case 'json-schema':
+        exportData = SchemaExporter.exportToJSONSchema(data);
+        filename = 'schema-json-schema.json';
+        mimeType = 'application/json';
+        break;
+      default:
+        exportData = data;
+        filename = 'diagram-schema.json';
+        mimeType = 'application/json';
+    }
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'diagram-schema.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

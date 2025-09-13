@@ -12,7 +12,10 @@ import {
   Layout,
   ChevronDown,
   Undo,
-  Redo
+  Redo,
+  Globe,
+  Database,
+  FileJson
 } from 'lucide-react';
 import { DiagramData } from '../types';
 import { storage } from '../utils/storage';
@@ -44,13 +47,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   canRedo
 }) => {
   const [showLayoutDropdown, setShowLayoutDropdown] = React.useState(false);
+  const [showExportDropdown, setShowExportDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const exportDropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowLayoutDropdown(false);
+      }
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
       }
     };
 
@@ -94,9 +102,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
     multiple: false
   });
 
-  const handleExport = () => {
-    storage.export(data);
-    toast.success('Diagram exported successfully!');
+  const handleExport = (format: 'internal' | 'openapi' | 'nosql' | 'json-schema' = 'internal') => {
+    storage.export(data, format);
+    setShowExportDropdown(false);
+    toast.success(`Schema exported as ${format.toUpperCase()} successfully!`);
   };
 
   const handleSave = () => {
@@ -189,13 +198,52 @@ const Toolbar: React.FC<ToolbarProps> = ({
               </span>
             </div>
 
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-sm font-medium">Export</span>
-            </button>
+            {/* Export Dropdown */}
+            <div className="relative" ref={exportDropdownRef}>
+              <button
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-sm font-medium">Export</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {showExportDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleExport('internal')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Internal Format
+                    </button>
+                    <button
+                      onClick={() => handleExport('openapi')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Globe className="w-4 h-4" />
+                      OpenAPI Schema
+                    </button>
+                    <button
+                      onClick={() => handleExport('nosql')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Database className="w-4 h-4" />
+                      NoSQL Schema
+                    </button>
+                    <button
+                      onClick={() => handleExport('json-schema')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <FileJson className="w-4 h-4" />
+                      JSON Schema
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleSave}

@@ -17,6 +17,7 @@ import { Entity, Relationship, DiagramData } from '../types';
 import EntityNode from './EntityNode';
 import { CustomEdge } from './CustomEdge';
 import { ReferenceManager } from '../utils/referenceManager';
+import ConnectionDialog from './ConnectionDialog';
 
 const nodeTypes: NodeTypes = {
   entity: EntityNode,
@@ -35,6 +36,15 @@ interface DiagramCanvasProps {
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniMap = true }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [connectionDialog, setConnectionDialog] = React.useState<{
+    isOpen: boolean;
+    sourceEntity: Entity | null;
+    targetEntity: Entity | null;
+  }>({
+    isOpen: false,
+    sourceEntity: null,
+    targetEntity: null
+  });
 
   // Convert entities to nodes
   const entityNodes: Node[] = useMemo(() => 
@@ -101,24 +111,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
       return;
     }
 
-    // Create the relationship
-    const newRelationship: Relationship = {
-      id: `rel-${Date.now()}`,
-      source: params.source!,
-      target: params.target!,
-      type: 'reference',
-      label: ''
-    };
-
-    // Use ReferenceManager to create reference property in target entity
-    const updatedData = ReferenceManager.createReferenceOnConnection(
+    // Show dialog to let user choose which node gets the reference property
+    setConnectionDialog({
+      isOpen: true,
       sourceEntity,
-      targetEntity,
-      { ...data, relationships: [...data.relationships, newRelationship] }
-    );
-
-    onUpdate(updatedData);
-  }, [data, onUpdate]);
+      targetEntity
+    });
+  }, [data]);
 
   const onNodeDragStop = useCallback((_event: any, node: Node) => {
     const updatedEntities = data.entities.map(entity => 
@@ -137,12 +136,75 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
     const deletions = changes.filter(change => change.type === 'remove');
     if (deletions.length > 0) {
       const deletedEdgeIds = deletions.map(change => change.id);
+      const deletedRelationships = data.relationships.filter(rel => 
+        deletedEdgeIds.includes(rel.id)
+      );
+      
+      // Remove relationships from the array
       const updatedRelationships = data.relationships.filter(rel => 
         !deletedEdgeIds.includes(rel.id)
       );
-      onUpdate({ ...data, relationships: updatedRelationships });
+      
+      // Clean up reference properties from whichever node has them
+      let updatedData = { ...data, relationships: updatedRelationships };
+      deletedRelationships.forEach(rel => {
+        // Check both source and target entities for reference properties
+        const sourceEntity = data.entities.find(e => e.id === rel.source);
+        const targetEntity = data.entities.find(e => e.id === rel.target);
+        
+        // Check if source entity has a reference property pointing to target
+        if (sourceEntity) {
+          const sourceReferenceProperty = Object.entries(sourceEntity.properties).find(([_, prop]) => 
+            prop.type === 'reference' && prop.referenceEntityId === rel.target
+          );
+          
+          if (sourceReferenceProperty) {
+            const [propName] = sourceReferenceProperty;
+            updatedData = ReferenceManager.removeReference(propName, sourceEntity, updatedData);
+          }
+        }
+        
+        // Check if target entity has a reference property pointing to source
+        if (targetEntity) {
+          const targetReferenceProperty = Object.entries(targetEntity.properties).find(([_, prop]) => 
+            prop.type === 'reference' && prop.referenceEntityId === rel.source
+          );
+          
+          if (targetReferenceProperty) {
+            const [propName] = targetReferenceProperty;
+            updatedData = ReferenceManager.removeReference(propName, targetEntity, updatedData);
+          }
+        }
+      });
+      
+      onUpdate(updatedData);
     }
   }, [data, onUpdate, onEdgesChange]);
+
+  const handleConnectionConfirm = useCallback((referenceNode: Entity, referencedNode: Entity) => {
+    // Create the relationship
+    const newRelationship: Relationship = {
+      id: `rel-${Date.now()}`,
+      source: referenceNode.id,
+      target: referencedNode.id,
+      type: 'reference',
+      label: ''
+    };
+
+    // Use ReferenceManager to create reference property
+    const updatedData = ReferenceManager.createReferenceOnConnection(
+      referenceNode,
+      referencedNode,
+      { ...data, relationships: [...data.relationships, newRelationship] }
+    );
+
+    onUpdate(updatedData);
+    setConnectionDialog({ isOpen: false, sourceEntity: null, targetEntity: null });
+  }, [data, onUpdate]);
+
+  const handleConnectionCancel = useCallback(() => {
+    setConnectionDialog({ isOpen: false, sourceEntity: null, targetEntity: null });
+  }, []);
 
   return (
     <div className="w-full h-full">
@@ -157,22 +219,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
         edgeTypes={edgeTypes}
         fitView
         attributionPosition="bottom-left"
+        defaultEdgeOptions={{
+          markerEnd: {
+            type: 'arrowclosed',
+            color: '#6b7280',
+          },
+        }}
       >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 10 3.5, 0 7"
-              fill="#6b7280"
-            />
-          </marker>
-        </defs>
         <Controls />
         {showMiniMap && (
           <MiniMap 
@@ -187,6 +240,17 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ data, onUpdate, showMiniM
         )}
         <Background color="#f1f5f9" gap={20} />
       </ReactFlow>
+      
+      {/* Connection Dialog */}
+      {connectionDialog.sourceEntity && connectionDialog.targetEntity && (
+        <ConnectionDialog
+          isOpen={connectionDialog.isOpen}
+          sourceEntity={connectionDialog.sourceEntity}
+          targetEntity={connectionDialog.targetEntity}
+          onConfirm={handleConnectionConfirm}
+          onCancel={handleConnectionCancel}
+        />
+      )}
     </div>
   );
 };

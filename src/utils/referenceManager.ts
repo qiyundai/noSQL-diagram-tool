@@ -2,40 +2,41 @@ import { Entity, Relationship, Property, DiagramData, toCamelCase, toTitleCase }
 
 export class ReferenceManager {
   /**
-   * Creates a reference property in the target entity when connecting two nodes
+   * Creates a reference property in the source entity when connecting two nodes
    */
   static createReferenceOnConnection(
     sourceEntity: Entity,
     targetEntity: Entity,
     data: DiagramData
   ): DiagramData {
-    const propertyName = toCamelCase(sourceEntity.name);
+    const propertyName = toCamelCase(targetEntity.name);
     
     // Check if property already exists
-    const existingProperty = targetEntity.properties[propertyName];
-    if (existingProperty && existingProperty.type === 'reference' && existingProperty.referenceEntityId === sourceEntity.id) {
+    const existingProperty = sourceEntity.properties[propertyName];
+    if (existingProperty && existingProperty.type === 'reference' && existingProperty.referenceEntityId === targetEntity.id) {
       // Property already exists and points to the same entity
       return data;
     }
 
-    // Create or update the reference property
-    const updatedTargetEntity = {
-      ...targetEntity,
+    // Create or update the reference property in the SOURCE entity
+    const updatedSourceEntity = {
+      ...sourceEntity,
       properties: {
-        ...targetEntity.properties,
+        ...sourceEntity.properties,
         [propertyName]: {
           name: propertyName,
           type: 'reference',
-          description: `Reference to ${sourceEntity.name}`,
+          description: `Reference to ${targetEntity.name}`,
           required: false,
-          referenceEntityId: sourceEntity.id
+          referenceEntityId: targetEntity.id
         }
       }
     };
 
+
     // Update the entities array
     const updatedEntities = data.entities.map(entity => 
-      entity.id === targetEntity.id ? updatedTargetEntity : entity
+      entity.id === sourceEntity.id ? updatedSourceEntity : entity
     );
 
     return {
@@ -176,7 +177,7 @@ export class ReferenceManager {
       }
     };
 
-    // Remove the relationship
+    // Remove the relationship between source and referenced entity
     const updatedRelationships = data.relationships.filter(rel => 
       !(rel.source === sourceEntity.id && rel.target === referencedEntityId)
     );
@@ -200,8 +201,11 @@ export class ReferenceManager {
     deletedEntityId: string,
     data: DiagramData
   ): DiagramData {
-    // Find all properties that reference this entity
-    const updatedEntities = data.entities.map(entity => {
+    // Remove the entity itself
+    const updatedEntities = data.entities.filter(entity => entity.id !== deletedEntityId);
+    
+    // Find all properties that reference this entity and convert them back to string
+    const finalEntities = updatedEntities.map(entity => {
       const updatedProperties: Record<string, Property> = {};
       
       Object.entries(entity.properties).forEach(([propName, property]) => {
@@ -230,7 +234,7 @@ export class ReferenceManager {
 
     return {
       ...data,
-      entities: updatedEntities,
+      entities: finalEntities,
       relationships: updatedRelationships
     };
   }

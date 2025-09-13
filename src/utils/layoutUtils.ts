@@ -18,11 +18,12 @@ export class LayoutEngine {
 
   /**
    * Apply hierarchical layout based on entity relationships
+   * Arranges entities in horizontal columns, with each reference level in a separate column
    */
   applyHierarchicalLayout(options: LayoutOptions = {}): Entity[] {
     const {
-      levelSpacing = 400,
-      entitySpacing = 400, // Increased from 300 to prevent overlapping
+      levelSpacing = 800, // Horizontal spacing between columns (increased for less clutter)
+      entitySpacing = 200, // Vertical spacing within columns
       startX = 100,
       startY = 100
     } = options;
@@ -34,39 +35,81 @@ export class LayoutEngine {
       return this.applyGridLayout(options);
     }
 
-    // Build adjacency list for relationship analysis
-    const adjacencyList = new Map<string, string[]>();
-    const inDegree = new Map<string, number>();
+    // Build reference graph to determine reference depth
+    const referencedBy = new Map<string, string[]>(); // entity -> entities that reference it
+    const references = new Map<string, string[]>(); // entity -> entities it references
     
     // Initialize maps
     this.entities.forEach(entity => {
-      adjacencyList.set(entity.id, []);
-      inDegree.set(entity.id, 0);
+      referencedBy.set(entity.id, []);
+      references.set(entity.id, []);
     });
 
-    // Build graph from relationships
+    // Build reference relationships
     this.relationships.forEach(rel => {
-      const sourceList = adjacencyList.get(rel.source) || [];
-      sourceList.push(rel.target);
-      adjacencyList.set(rel.source, sourceList);
-      
-      const targetInDegree = inDegree.get(rel.target) || 0;
-      inDegree.set(rel.target, targetInDegree + 1);
+      if (rel.type === 'reference') {
+        // rel.source references rel.target
+        const sourceRefs = references.get(rel.source) || [];
+        sourceRefs.push(rel.target);
+        references.set(rel.source, sourceRefs);
+        
+        const targetReferencedBy = referencedBy.get(rel.target) || [];
+        targetReferencedBy.push(rel.source);
+        referencedBy.set(rel.target, targetReferencedBy);
+      }
     });
 
-    // Find root nodes (entities with no incoming relationships)
+    // Find root nodes (entities that are not referenced by anyone)
     const rootNodes = this.entities.filter(entity => 
-      (inDegree.get(entity.id) || 0) === 0
+      (referencedBy.get(entity.id) || []).length === 0
     );
 
-    // If no clear hierarchy (all entities have relationships), use force-directed layout
-    if (rootNodes.length === 0 || rootNodes.length === this.entities.length) {
+    // If no clear hierarchy (all entities are referenced), use force-directed layout
+    if (rootNodes.length === 0) {
       return this.applyForceDirectedLayout(options);
     }
 
-    // Apply hierarchical layout
-    const startNode = rootNodes[0];
-    return this.positionEntitiesHierarchically(startNode.id, adjacencyList, {
+    // Calculate reference depth for each entity
+    const referenceDepth = new Map<string, number>();
+    const depthGroups = new Map<number, string[]>();
+    
+    // BFS to calculate reference depth
+    const queue: { id: string; depth: number }[] = rootNodes.map(node => ({ id: node.id, depth: 0 }));
+    
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift()!;
+      
+      if (referenceDepth.has(id)) continue;
+      
+      referenceDepth.set(id, depth);
+      
+      if (!depthGroups.has(depth)) {
+        depthGroups.set(depth, []);
+      }
+      depthGroups.get(depth)!.push(id);
+      
+      // Add referenced entities to queue with depth + 1
+      const referencedEntities = references.get(id) || [];
+      referencedEntities.forEach(refId => {
+        if (!referenceDepth.has(refId)) {
+          queue.push({ id: refId, depth: depth + 1 });
+        }
+      });
+    }
+    
+    // Handle entities that weren't reached (disconnected components)
+    this.entities.forEach(entity => {
+      if (!referenceDepth.has(entity.id)) {
+        const maxDepth = Math.max(...Array.from(referenceDepth.values()), -1);
+        referenceDepth.set(entity.id, maxDepth + 1);
+        if (!depthGroups.has(maxDepth + 1)) {
+          depthGroups.set(maxDepth + 1, []);
+        }
+        depthGroups.get(maxDepth + 1)!.push(entity.id);
+      }
+    });
+
+    return this.positionEntitiesByReferenceDepth(depthGroups, {
       levelSpacing,
       entitySpacing,
       startX,
@@ -213,81 +256,31 @@ export class LayoutEngine {
     }));
   }
 
-  private positionEntitiesHierarchically(
-    rootId: string, 
-    adjacencyList: Map<string, string[]>,
+  private positionEntitiesByReferenceDepth(
+    depthGroups: Map<number, string[]>,
     options: Required<LayoutOptions>
   ): Entity[] {
     const { levelSpacing, entitySpacing, startX, startY } = options;
-    const visited = new Set<string>();
-    const levels = new Map<string, number>();
-    const levelGroups = new Map<number, string[]>();
-    
-    // BFS to assign levels
-    const queue: { id: string; level: number }[] = [{ id: rootId, level: 0 }];
-    
-    while (queue.length > 0) {
-      const { id, level } = queue.shift()!;
-      
-      if (visited.has(id)) continue;
-      visited.add(id);
-      levels.set(id, level);
-      
-      if (!levelGroups.has(level)) {
-        levelGroups.set(level, []);
-      }
-      levelGroups.get(level)!.push(id);
-      
-      // Add children to queue
-      const children = adjacencyList.get(id) || [];
-      children.forEach(childId => {
-        if (!visited.has(childId)) {
-          queue.push({ id: childId, level: level + 1 });
-        }
-      });
-    }
-    
-    // Handle unvisited nodes (disconnected components)
-    this.entities.forEach(entity => {
-      if (!visited.has(entity.id)) {
-        const maxLevel = Math.max(...Array.from(levels.values()), -1);
-        levels.set(entity.id, maxLevel + 1);
-        if (!levelGroups.has(maxLevel + 1)) {
-          levelGroups.set(maxLevel + 1, []);
-        }
-        levelGroups.get(maxLevel + 1)!.push(entity.id);
-      }
-    });
-
-    // Position entities by level with balanced multi-column layout
     const updatedEntities = [...this.entities];
     
-    levelGroups.forEach((entityIds, level) => {
-      const entitiesInLevel = entityIds.length;
+    depthGroups.forEach((entityIds, depth) => {
+      const entitiesInDepth = entityIds.length;
       
-      // Calculate optimal number of columns for this level
-      const maxColumns = Math.min(3, Math.ceil(Math.sqrt(entitiesInLevel * 1.5))); // Reduced max columns for better spacing
-      const columns = Math.min(maxColumns, entitiesInLevel);
+      // Each depth is a column, positioned horizontally
+      const columnX = startX + depth * levelSpacing;
       
-      // Calculate spacing for this level
-      const levelWidth = (columns - 1) * entitySpacing;
-      
-      // Center the level horizontally
-      const levelStartX = startX - levelWidth / 2;
-      const levelStartY = startY + level * levelSpacing;
+      // Calculate vertical spacing for entities within the column
+      const totalHeight = (entitiesInDepth - 1) * entitySpacing;
+      const columnStartY = startY - totalHeight / 2; // Center the column vertically
       
       entityIds.forEach((entityId, index) => {
         const entityIndex = updatedEntities.findIndex(e => e.id === entityId);
         if (entityIndex !== -1) {
-          const row = Math.floor(index / columns);
-          const col = index % columns;
-          
-          const x = levelStartX + col * entitySpacing;
-          const y = levelStartY + row * (levelSpacing * 0.6);
+          const y = columnStartY + index * entitySpacing;
           
           updatedEntities[entityIndex] = {
             ...updatedEntities[entityIndex],
-            position: { x, y }
+            position: { x: columnX, y }
           };
         }
       });

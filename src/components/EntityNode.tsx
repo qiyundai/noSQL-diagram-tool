@@ -16,6 +16,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
   const [isEditing, setIsEditing] = useState(false);
   const [expandedProperties, setExpandedProperties] = useState<string[]>([]);
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
+  const [editingPropertyName, setEditingPropertyName] = useState<string>('');
   const [editForm, setEditForm] = useState({
     name: data.name,
     description: data.description || '',
@@ -32,13 +33,22 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
 
 
   const deleteProperty = (propertyName: string) => {
-    const { [propertyName]: deleted, ...remainingProperties } = data.properties;
-    const updatedEntity = {
-      ...data,
-      properties: remainingProperties,
-      required: data.required?.filter(name => name !== propertyName) || []
-    };
-    data.onUpdate(updatedEntity);
+    const property = data.properties[propertyName];
+    
+    // If it's a reference property, remove the relationship first
+    if (property && property.type === 'reference' && property.referenceEntityId) {
+      const updatedData = ReferenceManager.removeReference(propertyName, data, data.diagramData);
+      data.onUpdateDiagram(updatedData);
+    } else {
+      // Regular property deletion
+      const { [propertyName]: deleted, ...remainingProperties } = data.properties;
+      const updatedEntity = {
+        ...data,
+        properties: remainingProperties,
+        required: data.required?.filter(name => name !== propertyName) || []
+      };
+      data.onUpdate(updatedEntity);
+    }
   };
 
   const addProperty = () => {
@@ -94,7 +104,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
     setIsEditing(false);
   };
 
-  const updateProperty = (propertyName: string, updates: Partial<Property>) => {
+  const updateProperty = (propertyName: string, updates: Partial<Property>, closeEditing: boolean = false) => {
     const currentProperty = data.properties[propertyName];
     const newType = updates.type || currentProperty.type;
     const wasReference = currentProperty.type === 'reference';
@@ -123,7 +133,11 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
       };
       data.onUpdate(updatedEntity);
     }
-    setEditingProperty(null);
+    
+    // Only close editing mode if explicitly requested
+    if (closeEditing) {
+      setEditingProperty(null);
+    }
   };
 
   const getTypeColor = (type: string) => {
@@ -139,11 +153,62 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
     return colors[type as keyof typeof colors] || colors.any;
   };
 
+  // Prevent node dragging when interacting with form elements
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Check if the target is an interactive element
+    const target = e.target as HTMLElement;
+    const isInteractive = target.tagName === 'INPUT' || 
+                         target.tagName === 'SELECT' || 
+                         target.tagName === 'TEXTAREA' || 
+                         target.tagName === 'BUTTON' ||
+                         target.closest('input, select, textarea, button');
+    
+    if (isInteractive) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
+  // Prevent drag start on form elements
+  const handleDragStart = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.tagName === 'INPUT' || 
+                         target.tagName === 'SELECT' || 
+                         target.tagName === 'TEXTAREA' || 
+                         target.tagName === 'BUTTON' ||
+                         target.closest('input, select, textarea, button');
+    
+    if (isInteractive) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  // Prevent drag on form elements
+  const handleDrag = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.tagName === 'INPUT' || 
+                         target.tagName === 'SELECT' || 
+                         target.tagName === 'TEXTAREA' || 
+                         target.tagName === 'BUTTON' ||
+                         target.closest('input, select, textarea, button');
+    
+    if (isInteractive) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   return (
-    <div className={cn(
-      "bg-white rounded-lg shadow-lg border-2 w-[350px] transition-all duration-200",
-      selected ? "border-blue-500 shadow-xl" : "border-gray-200 hover:shadow-md"
-    )}>
+    <div 
+      className={cn(
+        "bg-white rounded-lg shadow-lg border-2 w-[350px] transition-all duration-200",
+        selected ? "border-blue-500 shadow-xl" : "border-gray-200 hover:shadow-md"
+      )}
+      onMouseDown={handleMouseDown}
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
+    >
       {/* Node Header */}
       <div 
         className="p-4 border-b border-gray-200 rounded-t-lg relative"
@@ -228,7 +293,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
               />
             ) : (
               data.description && (
-                <p className="text-sm text-gray-600">{data.description}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">{data.description}</p>
               )
             )}
           </div>
@@ -262,19 +327,30 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       <label className="block text-xs font-medium text-gray-700 mb-1">Property Name</label>
                       <input
                         type="text"
-                        value={propName}
-                        onChange={(e) => {
-                          const newName = e.target.value;
-                          const { [propName]: oldProp, ...rest } = data.properties;
-                          const updatedEntity = {
-                            ...data,
-                            properties: {
-                              ...rest,
-                              [newName]: oldProp
-                            }
-                          };
-                          data.onUpdate(updatedEntity);
+                        value={editingPropertyName}
+                        onChange={(e) => setEditingPropertyName(e.target.value)}
+                        onBlur={() => {
+                          if (editingPropertyName && editingPropertyName !== propName) {
+                            const { [propName]: oldProp, ...rest } = data.properties;
+                            const updatedEntity = {
+                              ...data,
+                              properties: {
+                                ...rest,
+                                [editingPropertyName]: {
+                                  ...oldProp,
+                                  name: editingPropertyName
+                                }
+                              }
+                            };
+                            data.onUpdate(updatedEntity);
+                          }
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        draggable={false}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Enter property name"
                       />
@@ -284,6 +360,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       <select
                         value={prop.type}
                         onChange={(e) => updateProperty(propName, { type: e.target.value })}
+                        draggable={false}
                         className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="string">string</option>
@@ -320,6 +397,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       type="text"
                       value={prop.description || ''}
                       onChange={(e) => updateProperty(propName, { description: e.target.value })}
+                      draggable={false}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="Property description (optional)"
                     />
@@ -329,6 +407,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                   <div className="flex justify-end gap-2 pt-2">
                     <button
                       onClick={() => setEditingProperty(null)}
+                      draggable={false}
                       className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                     >
                       Done
@@ -336,28 +415,39 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center justify-between min-w-0">
+                  <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                     <span className={cn(
-                      "text-xs px-2 py-1 rounded font-medium",
+                      "text-xs px-2 py-1 rounded font-medium flex-shrink-0",
                       getTypeColor(prop.type)
                     )}>
                       {prop.type}
                     </span>
-                    <span className="font-medium text-sm text-gray-900">{propName}</span>
-                    {prop.type === 'reference' && prop.referenceEntityId && (
-                      <span className="text-xs text-red-600 bg-red-50 px-1 py-0.5 rounded">
-                        →
-                      </span>
-                    )}
-                    {data.required?.includes(propName) && (
-                      <span className="text-red-500 text-sm font-medium">*</span>
-                    )}
+                    <span 
+                      className="font-medium text-sm text-gray-900 truncate flex-1 min-w-0" 
+                      title={propName}
+                    >
+                      {propName}
+                    </span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {prop.type === 'reference' && prop.referenceEntityId && (
+                        <span className="text-xs text-red-600 bg-red-50 px-1 py-0.5 rounded">
+                          →
+                        </span>
+                      )}
+                      {data.required?.includes(propName) && (
+                        <span className="text-red-500 text-sm font-medium">*</span>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button
-                      onClick={() => setEditingProperty(propName)}
+                      onClick={() => {
+                        setEditingProperty(propName);
+                        setEditingPropertyName(propName);
+                      }}
+                      draggable={false}
                       className="p-2 hover:bg-gray-200 rounded-md transition-colors"
                       title="Edit property"
                     >
@@ -366,6 +456,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     {(prop.type === 'object' || prop.type === 'array') && (
                       <button
                         onClick={() => togglePropertyExpansion(propName)}
+                        draggable={false}
                         className="p-2 hover:bg-gray-200 rounded-md transition-colors"
                         title={expandedProperties.includes(propName) ? "Collapse" : "Expand"}
                       >
@@ -378,6 +469,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                     )}
                     <button
                       onClick={() => deleteProperty(propName)}
+                      draggable={false}
                       className="p-2 hover:bg-red-100 rounded-md text-red-600 transition-colors"
                       title="Delete property"
                     >
@@ -390,7 +482,7 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
               {/* Description display for non-editing mode */}
               {!isEditingProp && prop.description && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-600">{prop.description}</p>
+                  <p className="text-xs text-gray-600 break-words">{prop.description}</p>
                 </div>
               )}
 
@@ -407,14 +499,16 @@ const EntityNode: React.FC<NodeProps<EntityNodeData>> = ({ data, selected }) => 
                       {Object.entries(prop.properties).map(([nestedName, nestedProp]) => {
                         const nested = nestedProp as Property;
                         return (
-                        <div key={nestedName} className="text-xs">
+                        <div key={nestedName} className="text-xs flex items-center gap-1 min-w-0">
                           <span className={cn(
-                            "px-1 py-0.5 rounded mr-1",
+                            "px-1 py-0.5 rounded flex-shrink-0",
                             getTypeColor(nested.type)
                           )}>
                             {nested.type}
                           </span>
-                          {nestedName}
+                          <span className="truncate" title={nestedName}>
+                            {nestedName}
+                          </span>
                         </div>
                         );
                       })}

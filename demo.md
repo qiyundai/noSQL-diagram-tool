@@ -46,13 +46,7 @@
 
 ## Sample Data
 
-The `context/openapi-sample.json` file contains a real Adobe Events Service API with:
-- 50+ entities
-- Complex relationships
-- Nested objects and arrays
-- Various data types
-
-The `sample-diagram.json` file contains a simpler e-commerce schema with:
+The `sample-diagram.json` file contains a simple e-commerce schema with:
 - User management
 - Order processing
 - Profile information
